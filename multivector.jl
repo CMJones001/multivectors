@@ -52,6 +52,16 @@ zero(::Vec) = Vec(0, 0, 0)
 zero(::Biv) = Biv(0, 0, 0)
 zero(::Tri) = Tri(0)
 
+# Generic options (are these slower?)
+comp(r::Real) = (r,)
+comp(v::Vec) = (v.e1, v.e2, v.e3)
+comp(b::Biv) = (b.e12, b.e23, b.e32)
+comp(t::Tri) = (t.i,)
+
+add(z::U, w::U) where U<:Geometric = U((comp(z) .+ comp(w))...)
+sub(z::U, w::U) where U<:Geometric = U((comp(z) .- comp(w))...)
+eq(z::U, w::U) where U<:Geometric = comp(z) == comp(w)
+
 # addition and subtraction
 +(z::Vec, w::Vec) = V(z.e1 + w.e1, z.e2 + w.e2, z.e3 + w.e3)
 -(z::Vec, w::Vec) = V(z.e1 - w.e1, z.e2 - w.e2, z.e3 - w.e3)
