@@ -3,19 +3,30 @@ module MultivectorComps
 import Base: +, -, *, /, ==, show, zero, iszero
 export Sca, Vec, Biv, Tri, ∧, ZeroVec
 
-# Classes for the geometric algebra of three dimensions
+"""
+Core components required for geometric algebra in three dimensions, ``G_3``.
+"""
+
 abstract type Geometric end
 struct ZeroVec end
 const zv = ZeroVec()
 
-# Vector
+"""
+Vectors, or 1 dimensional elements.
+
+Given in terms of three orthogonal basis vectors ``{e1, e2, e3}``.
+"""
 struct Vec{T<:Real} <: Geometric
     e1::T
     e2::T
     e3::T
 end
 
-# Bivector
+"""
+Bivectors, or 2 dimensional elements
+
+Given in terms of the basis 2-blades ``{e1 ∧ e2, e2 ∧ e3, e3 ∧ e1}``.
+"""
 struct Biv{T<:Real} <: Geometric
     e12::T
     e23::T
@@ -43,40 +54,30 @@ const T = Tri
 V(e1::Real, e2::Real, e3::Real) = V(promote(e1,e2,e3)...)
 B(e12::Real, e23::Real, e31::Real) = B(promote(e12,e23,e31)...)
 
-iszero(v::Vec) = iszero(v.e1) & iszero(v.e2) & iszero(v.e3)
-iszero(b::Biv) = iszero(b.e12) & iszero(b.e23) & iszero(b.e31)
-iszero(t::Tri) = iszero(t.i)
+# Generic options, compiler makes this as fast as handwritten version 
+comp(r::Real) = (r,)
+comp(v::Vec) = (v.e1, v.e2, v.e3)
+comp(b::Biv) = (b.e12, b.e23, b.e31)
+comp(t::Tri) = (t.i,)
+
+# Addition, subtraction, and negation between like types
++(z::U, w::U) where U<:Geometric = U((comp(z) .+ comp(w))...)
+-(z::U, w::U) where U<:Geometric = U((comp(z) .- comp(w))...)
+-(z::U) where U<:Geometric = U(map(-, comp(z))...)
+==(z::U, w::U) where U<:Geometric = comp(z) == comp(w)
+
+# Scalar multiplication
+*(a::Real, z::U) where U<:Geometric = U((a .* comp(z))...)
+*(z::U, a::Real) where U<:Geometric = U((a .* comp(z))...)
+/(z::U, a::Real) where U<:Geometric = U((a ./ comp(z))...)
+
+iszero(v::Geometric) = all(iszero.(comp(v)))
 iszero(::ZeroVec) = true
 
 zero(::Vec) = Vec(0, 0, 0)
 zero(::Biv) = Biv(0, 0, 0)
 zero(::Tri) = Tri(0)
 
-# Generic options (are these slower?)
-comp(r::Real) = (r,)
-comp(v::Vec) = (v.e1, v.e2, v.e3)
-comp(b::Biv) = (b.e12, b.e23, b.e32)
-comp(t::Tri) = (t.i,)
-
-add(z::U, w::U) where U<:Geometric = U((comp(z) .+ comp(w))...)
-sub(z::U, w::U) where U<:Geometric = U((comp(z) .- comp(w))...)
-eq(z::U, w::U) where U<:Geometric = comp(z) == comp(w)
-
-# addition and subtraction
-+(z::Vec, w::Vec) = V(z.e1 + w.e1, z.e2 + w.e2, z.e3 + w.e3)
--(z::Vec, w::Vec) = V(z.e1 - w.e1, z.e2 - w.e2, z.e3 - w.e3)
--(z::Vec) = V(-z.e1, -z.e2, -z.e3)
-==(z::Vec, w::Vec) = (z.e1 == w.e1) & (z.e2 == w.e2) & (z.e3 == w.e3) 
-
-+(z::Biv, w::Biv) = B(z.e12 + w.e12, z.e23 + w.e23, z.e31 + w.e31)
--(z::Biv, w::Biv) = B(z.e12 - w.e12, z.e23 - w.e23, z.e31 - w.e31)
--(z::Biv) = B(-z.e12, -z.e23, -z.e31)
-==(z::Biv, w::Biv) = (z.e12 == w.e12) & (z.e23 == w.e23) & (z.e31 == w.e31) 
-
-+(z::Tri, w::Tri) = Tri(z.i + w.i)
--(z::Tri, w::Tri) = Tri(z.i - w.i)
--(z::Tri) = Tri(-z.i)
-==(z::T, w::T) = z.i == w.i
 
 # Zero is the identity under addition
 +(z::Geometric, ::ZeroVec) = z
@@ -89,19 +90,6 @@ eq(z::U, w::U) where U<:Geometric = comp(z) == comp(w)
 # Zero vector is equal to zero...
 ==(z::Geometric, ::ZeroVec) = iszero(z)
 ==(::ZeroVec, z::Geometric) = iszero(z)
-
-# Scalar operations
-*(a::Real, z::Vec) = V(z.e1 * a, z.e2 * a, z.e3 * a)
-*(z::Vec, a::Real) = V(z.e1 * a, z.e2 * a, z.e3 * a)
-/(z::Vec, a::Real) = V(z.e1 / a, z.e2 / a, z.e3 / a)
-
-*(a::Real, z::Biv) = B(z.e12 * a, z.e23 * a, z.e31 * a)
-*(z::Biv, a::Real) = B(z.e12 * a, z.e23 * a, z.e31 * a)
-/(z::Biv, a::Real) = B(z.e12 / a, z.e23 / a, z.e31 / a)
-
-*(a::Real, z::Tri) = T(z.i * a)
-*(z::Tri, a::Real) = T(z.i * a)
-/(z::Tri, a::Real) = T(z.i / a)
 
 # Under multiplication, zero vector always returns zero
 *(a::Geometric, ::ZeroVec) = zv
@@ -137,11 +125,11 @@ show(io::IO, ::ZeroVec) = print(io, "∅")
 
 end
 
-module Multivector
+module Multivectors
 using ..MultivectorComps
 
 import Base: +, -, *, /, ==, show, zero, iszero
-import ..MultivectorComps: V, B, T, v1, v2, v3, v12, v23, v31, I, ∧, zv, Geometric
+import ..MultivectorComps: V, B, T, v1, v2, v3, v12, v23, v31, I, ∧, zv, Geometric 
 export V, B, T, v1, v2, v3, v12, v23, v31, I
 export Vec, Biv, Tri, ∧, Mul, zv
 
@@ -159,8 +147,8 @@ Mul(s::Real) = Mul(s, zv, zv, zv)
 Mul(v::Vec)  = Mul(zv, v, zv, zv)
 Mul(b::Biv)  = Mul(zv, zv, b, zv)
 Mul(t::Tri)  = Mul(zv, zv, zv, t)
-Mul() = Mul{Real}(zv, zv, zv, zv)
 # We need to define a generic type when all values are zero still
+Mul() = Mul{UInt8}(zv, zv, zv, zv)
 Mul(::ZeroVec, ::ZeroVec, ::ZeroVec, ::ZeroVec) = Mul{UInt8}(zv, zv, zv, zv)
 
 ==(m::Mul, s::Real) = (m.s == s) & iszero(m.b) & iszero(m.v) & iszero(m.p)
@@ -178,10 +166,11 @@ Mul(::ZeroVec, ::ZeroVec, ::ZeroVec, ::ZeroVec) = Mul{UInt8}(zv, zv, zv, zv)
 
 # This is likely to cause problems elsewhere?!
 # Maybe replace with a NoVec type
-+(z::Mul, w::Mul) = Mul(z.s + w.s, z.v + w.v, z.b + w.b, z.p + w.p)
--(z::Mul, w::Mul) = Mul(z.s - w.s, z.v - w.v, z.b - w.b, z.p - w.p)
-==(z::Mul, w::Mul) = (z.s == w.s) & (z.v == w.v) & (z.b == w.b) & (z.p == w.p)
-iszero(m::Mul) = iszero(m.s) & iszero(m.v) & iszero(m.b) & iszero(m.p)
+comp(m::Mul) = (m.s, m.v, m.b, m.p)
++(z::Mul, w::Mul) = Mul((comp(z) .+ comp(w))...)
+-(z::Mul, w::Mul) = Mul((comp(z) .- comp(w))...)
+==(z::Mul, w::Mul) = comp(z) == comp(w)
+iszero(m::Mul) = all(iszero.(comp(m)))
 
 ∧(z::Mul, w::Mul) = Mul(
     z.s * w.s,

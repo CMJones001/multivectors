@@ -1,9 +1,9 @@
 module test
 include("multivector.jl")
 
-using .Multivector
+using .Multivectors
 using Test
-import .Multivector: V, B, T, v1, v2, v3, v12, v23, v31, I
+import .Multivectors: V, B, T, v1, v2, v3, v12, v23, v31, I
 
 @testset "Basic scalar opts" begin
     @testset "Vectors" begin
