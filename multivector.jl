@@ -1,7 +1,7 @@
 module MultivectorComps
 
-import Base: +, -, *, /, ==, show, zero, iszero
-export Sca, Vec, Biv, Tri, ∧, ZeroVec
+import Base: +, -, *, /, ==, show, zero, iszero, |
+export Sca, Vec, Biv, Tri, ∧, ZeroVec, norm, contract
 
 """
 Core components required for geometric algebra in three dimensions, ``G_3``.
@@ -78,7 +78,6 @@ zero(::Vec) = Vec(0, 0, 0)
 zero(::Biv) = Biv(0, 0, 0)
 zero(::Tri) = Tri(0)
 
-
 # Zero is the identity under addition
 +(z::Geometric, ::ZeroVec) = z
 +(::ZeroVec, z::Geometric) = z
@@ -104,6 +103,8 @@ show(io::IO, v::Biv) = print(io, "$(v.e12)×e1∧e2 + $(v.e23)×e2∧e3 + $(v.e3
 show(io::IO, v::Tri) = print(io, "$(v.i)×e1∧e2∧e3")
 show(io::IO, ::ZeroVec) = print(io, "∅")
 
+# Outer products ##############################################################
+
 # Outer product with scalars is just multiplication
 ∧(z::Geometric, a::Real) = z*a
 ∧(a::Real, z::Geometric) = z*a
@@ -123,15 +124,53 @@ show(io::IO, ::ZeroVec) = print(io, "∅")
 ∧(v::Vec, b::Biv) = Tri(b.e12 * v.e3 + b.e23 * v.e1 + b.e31 * v.e2)
 ∧(::ZeroVec, ::ZeroVec) = zv
 
+
+# Contractions ################################################################
+
+# Dot producs
+|(z::Vec, w::Vec) = sum(comp(z) .* comp(w))
+|(z::Real, w::Real) = z*w
+
+norm(z::Geometric) = √(z|z)
+
+# Trivial cases
+contract(a::Real, b::Real) = a * b
+contract(a::Biv, b::Biv) = - a.e12 * b.e12 - a.e23 * b.e23 - a.e31
+contract(a::Tri, b::Tri) = -a.i * b.i
+
+contract(a::Real, b::Geometric) = a * b
+contract(a::Vec, b::Vec) = a | b
+
+# All cases of grade(a) > grade(b) = 0
+contract(a::Vec, b::Real) = zv
+contract(a::Biv, b::Real) = zv
+contract(a::Biv, b::Vec) = zv
+contract(a::Tri, b::Real) = zv
+contract(a::Tri, b::Vec) = zv
+contract(a::Tri, b::Biv) = zv
+
+function contract(a::Vec, b::Biv)
+    Vec(
+        b.e31 * a.e3 - b.e12 * a.e2,
+        b.e12 * a.e1 - b.e23 * a.e3,
+        b.e23 * a.e2 - b.e31 * a.e1
+    )
+end
+
+contract(a::Vec, b::Tri) = -b.i * Biv(a.e3, a.e1, a.e2)
+contract(a::Biv, b::Tri) = -b.i * Vec(a.e23, a.e31, a.e12)
+
+const << = contract
+
 end
 
 module Multivectors
 using ..MultivectorComps
 
 import Base: +, -, *, /, ==, show, zero, iszero
-import ..MultivectorComps: V, B, T, v1, v2, v3, v12, v23, v31, I, ∧, zv, Geometric 
-export V, B, T, v1, v2, v3, v12, v23, v31, I
-export Vec, Biv, Tri, ∧, Mul, zv
+import ..MultivectorComps: V, B, T, v1, v2, v3, v12, v23, v31, I, ∧, zv, Geometric
+export V, B, T, v1, v2, v3, v12, v23, v31, I, norm
+export Vec, Biv, Tri, ∧, Mul, zv, contract
 
 struct Mul{T<:Real}
     s::Union{T, ZeroVec}

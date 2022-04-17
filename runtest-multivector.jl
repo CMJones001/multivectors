@@ -67,6 +67,74 @@ end
     end
 end
 
+@testset "Dot product" begin
+    @testset "vectors" begin
+        @test v1 | v2 == 0
+        @test v1 | v1 == 1
+
+        @test V(1, 2, 3) | v2 == 2
+        @test V(3, 4, 2) | V(1, 0, 2) == 7
+    end
+end
+
+@testset "Misc functions" begin
+    @testset "vectors" begin
+        @test norm(v1) == 1
+        @test norm(v2) == 1
+        @test norm(V(3, 4, 0)) == 5.0
+    end
+end
+
+@testset "Contractions" begin
+    @testset "Trivial cases" begin
+        # Scalars
+        @test contract(3, 2) == 6
+        @test contract(0, 2) == 0
+
+        # Vectors
+        @test contract(v1, v2) == 0
+        @test contract(v1, v1) == 1
+        @test contract(v1, 5v1) == 5
+        @test contract(V(2, 3, 1), V(3, 0, 1)) == 7
+
+        # Mismatched ranks
+        @test contract(v1, 3) == zv
+
+        # Scalar and vector comps
+        @test contract(3, v1) == 3v1
+        @test contract(3, 2v2) == 6v2
+        @test contract(4, v31) == 4v31
+    end
+
+    @testset "Vector to Bivector" begin
+        @test contract(2v1, v12) == +2v2
+        @test contract(2v2, v12) == -2v1
+        @test contract(3v3+2v2, 5v23) == Vec(0, -15, 10)
+    end
+
+    @testset "Vector to Trivector" begin
+        @test contract(v23, I) == -1v1
+        @test contract(-2v12, 3I) == 6v3
+        @test contract(4v31, I) == -4v2
+    end
+
+    @testset "Bivector to bivector" begin
+        @test contract(v12, v12) == -1
+        @test contract(v12, v23) == 0
+        @test contract(v23, v31 + 2v23) == -2
+    end
+
+    @testset "Bivector to Tri" begin
+        @test contract(v12, I) == -v3
+        @test contract(3v31, 3I) == -9v2
+        @test contract(v31 + 2v12, 6I) == -6v2 - 12v3
+    end
+
+    @testset "Trivectors to trivectors" begin
+        @test contract(I, 3I) == -3
+    end
+end
+
 @testset "Multivector General" begin
     @test Mul(2) ∧ Mul(3) == Mul(6)
 
