@@ -8,7 +8,7 @@ let
       linuxPackages.nvidia_x11
       stdenv.cc
       binutils
-
+      git
       zsh
     ];
     runScript = "zsh";

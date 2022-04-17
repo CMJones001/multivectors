@@ -15,6 +15,7 @@ N = 2^20
 
 # Generate random Vectors and their multivector representation
 new_vectors(n::Integer) = [V(rand(-10:10, 3)...) for i in 1:n]
+zero_vector(n::Integer) = [zv for i in 1:n]
 new_multivectors(n) = map(Mul, new_vectors(n))
 
 # Print the average time taken for each outer product 
@@ -29,8 +30,13 @@ Q = new_vectors(N)
 res = @benchmark $P .∧ $Q
 print_time(res, "simple", N)
 
+Z = zero_vector(N)
+res = @benchmark $P .∧ $Z
+print_time(res, "simple", N)
+
 Pm = new_multivectors(N)
 Qm = new_multivectors(N)
 
 res = @benchmark $Pm .∧ $Qm
 print_time(res, "multivector", N)
+

@@ -39,13 +39,18 @@ struct Tri{T<:Real} <: Geometric
 end
 
 # Use v as the notation for the basis vectors, as e is used for exponentiation
-const v1 = Vec(1, 0, 0)
-const v2 = Vec(0, 1, 0)
-const v3 = Vec(0, 0, 1)
+const v1  = Vec(1, 0, 0)
+const v2  = Vec(0, 1, 0)
+const v3  = Vec(0, 0, 1)
 const v12 = Biv(1, 0, 0)
 const v23 = Biv(0, 1, 0)
 const v31 = Biv(0, 0, 1)
-const I = Tri(1)
+const I   = Tri(1)
+
+# Subscripts are allowed, but they are awkward to type, and don't work for bivectors
+const e₁ = Vec(1, 0, 0)
+const e₂ = Vec(0, 1, 0)
+const e₃ = Vec(0, 0, 1)
 
 const V = Vec
 const B = Biv
@@ -56,9 +61,12 @@ B(e12::Real, e23::Real, e31::Real) = B(promote(e12,e23,e31)...)
 
 # Generic options, compiler makes this as fast as handwritten version 
 comp(r::Real) = (r,)
-comp(v::Vec) = (v.e1, v.e2, v.e3)
-comp(b::Biv) = (b.e12, b.e23, b.e31)
-comp(t::Tri) = (t.i,)
+comp(v::Vec)  = (v.e1, v.e2, v.e3)
+comp(b::Biv)  = (b.e12, b.e23, b.e31)
+comp(t::Tri)  = (t.i,)
+
+
+# Simple scalar operations ####################################################
 
 # Addition, subtraction, and negation between like types
 +(z::U, w::U) where U<:Geometric = U((comp(z) .+ comp(w))...)
@@ -82,25 +90,25 @@ zero(::Tri) = Tri(0)
 +(z::Geometric, ::ZeroVec) = z
 +(::ZeroVec, z::Geometric) = z
 -(z::Geometric, ::ZeroVec) = z
--(::ZeroVec, z::Geometric) =-z
-+(::ZeroVec, ::ZeroVec) = zv
--(::ZeroVec, ::ZeroVec) = zv
+-(::ZeroVec, z::Geometric) = -z
++(::ZeroVec, ::ZeroVec)    = zv
+-(::ZeroVec, ::ZeroVec)    = zv
 
 # Zero vector is equal to zero...
 ==(z::Geometric, ::ZeroVec) = iszero(z)
 ==(::ZeroVec, z::Geometric) = iszero(z)
 
 # Under multiplication, zero vector always returns zero
-*(a::Geometric, ::ZeroVec) = zv
+*(a::Geometric, ::ZeroVec)  = zv
 *(z::ZeroVec, a::Geometric) = zv
-*(::ZeroVec, ::ZeroVec) = zv
-*(::ZeroVec, r::Real) = zv
-*(r::Real, z::ZeroVec) = zv
+*(::ZeroVec, ::ZeroVec)     = zv
+*(::ZeroVec, r::Real)       = zv
+*(r::Real, z::ZeroVec)      = zv
 
 # Misc options
-show(io::IO, v::Vec) = print(io, "$(v.e1)×e1 + $(v.e2)×e2 + $(v.e3)×e3")
-show(io::IO, v::Biv) = print(io, "$(v.e12)×e1∧e2 + $(v.e23)×e2∧e3 + $(v.e31)×e3∧e1")
-show(io::IO, v::Tri) = print(io, "$(v.i)×e1∧e2∧e3")
+show(io::IO, v::Vec)    = print(io, "$(v.e1)×e₁ + $(v.e2)×e₂ + $(v.e3)×e₃")
+show(io::IO, v::Biv)    = print(io, "$(v.e12)×e₁∧e₂ + $(v.e23)×e₂∧e₃ + $(v.e31)×e₃∧e₁")
+show(io::IO, v::Tri)    = print(io, "$(v.i)×e₁∧e₂∧e₃")
 show(io::IO, ::ZeroVec) = print(io, "∅")
 
 # Outer products ##############################################################
@@ -111,7 +119,7 @@ show(io::IO, ::ZeroVec) = print(io, "∅")
 
 # Outer product with Nothing gives nothing
 ∧(z::Geometric, ::ZeroVec) = zv
-∧(::ZeroVec, ::Geometric) = zv
+∧(::ZeroVec, ::Geometric)  = zv
 
 # Outer product of vectors gives a bivector
 ∧(z::Vec, w::Vec) = Biv(
@@ -135,8 +143,8 @@ norm(z::Geometric) = √(z|z)
 
 # Trivial cases
 contract(a::Real, b::Real) = a * b
-contract(a::Biv, b::Biv) = - a.e12 * b.e12 - a.e23 * b.e23 - a.e31
-contract(a::Tri, b::Tri) = -a.i * b.i
+contract(a::Biv, b::Biv)   = -(a.e12 * b.e12 + a.e23 * b.e23 + a.e31 * b.e31)
+contract(a::Tri, b::Tri)   = -a.i * b.i
 
 contract(a::Real, b::Geometric) = a * b
 contract(a::Vec, b::Vec) = a | b
@@ -144,10 +152,10 @@ contract(a::Vec, b::Vec) = a | b
 # All cases of grade(a) > grade(b) = 0
 contract(a::Vec, b::Real) = zv
 contract(a::Biv, b::Real) = zv
-contract(a::Biv, b::Vec) = zv
+contract(a::Biv, b::Vec)  = zv
 contract(a::Tri, b::Real) = zv
-contract(a::Tri, b::Vec) = zv
-contract(a::Tri, b::Biv) = zv
+contract(a::Tri, b::Vec)  = zv
+contract(a::Tri, b::Biv)  = zv
 
 function contract(a::Vec, b::Biv)
     Vec(
@@ -192,12 +200,12 @@ Mul(::ZeroVec, ::ZeroVec, ::ZeroVec, ::ZeroVec) = Mul{UInt8}(zv, zv, zv, zv)
 
 ==(m::Mul, s::Real) = (m.s == s) & iszero(m.b) & iszero(m.v) & iszero(m.p)
 ==(b::Real, m::Mul) = (m.s == s) & iszero(m.b) & iszero(m.v) & iszero(m.p)
-==(m::Mul, v::Vec) = (m.v == v) & iszero(m.s) & iszero(m.b) & iszero(m.p)
-==(v::Vec, m::Mul) = (m.v == v) & iszero(m.s) & iszero(m.b) & iszero(m.p)
-==(m::Mul, b::Biv) = (m.b == b) & iszero(m.s) & iszero(m.v) & iszero(m.p)
-==(b::Biv, m::Mul) = (m.b == b) & iszero(m.s) & iszero(m.v) & iszero(m.p)
-==(m::Mul, p::Tri) = (m.p == p) & iszero(m.b) & iszero(m.v) & iszero(m.s)
-==(p::Tri, m::Mul) = (m.p == p) & iszero(m.b) & iszero(m.v) & iszero(m.s)
+==(m::Mul, v::Vec)  = (m.v == v) & iszero(m.s) & iszero(m.b) & iszero(m.p)
+==(v::Vec, m::Mul)  = (m.v == v) & iszero(m.s) & iszero(m.b) & iszero(m.p)
+==(m::Mul, b::Biv)  = (m.b == b) & iszero(m.s) & iszero(m.v) & iszero(m.p)
+==(b::Biv, m::Mul)  = (m.b == b) & iszero(m.s) & iszero(m.v) & iszero(m.p)
+==(m::Mul, p::Tri)  = (m.p == p) & iszero(m.b) & iszero(m.v) & iszero(m.s)
+==(p::Tri, m::Mul)  = (m.p == p) & iszero(m.b) & iszero(m.v) & iszero(m.s)
 
 # Convert to multivectors if no other addition rules are available
 +(z::Geometric, w::Geometric) = Mul(z) + Mul(w)
@@ -206,10 +214,10 @@ Mul(::ZeroVec, ::ZeroVec, ::ZeroVec, ::ZeroVec) = Mul{UInt8}(zv, zv, zv, zv)
 # This is likely to cause problems elsewhere?!
 # Maybe replace with a NoVec type
 comp(m::Mul) = (m.s, m.v, m.b, m.p)
-+(z::Mul, w::Mul) = Mul((comp(z) .+ comp(w))...)
--(z::Mul, w::Mul) = Mul((comp(z) .- comp(w))...)
++(z::Mul, w::Mul)  = Mul((comp(z) .+ comp(w))...)
+-(z::Mul, w::Mul)  = Mul((comp(z) .- comp(w))...)
 ==(z::Mul, w::Mul) = comp(z) == comp(w)
-iszero(m::Mul) = all(iszero.(comp(m)))
+iszero(m::Mul)     = all(iszero.(comp(m)))
 
 ∧(z::Mul, w::Mul) = Mul(
     z.s * w.s,
